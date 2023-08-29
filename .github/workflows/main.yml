@@ -1,0 +1,33 @@
+name: 'build and deploy Speckle functions'
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - '*'
+
+jobs:
+  publish-automate-function-version: # make sure the action works on a clean machine without building
+    env:
+      FUNCTION_SCHEMA_FILE_NAME: functionSchema.json
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3.4.0
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18.x'
+      - name: Restore dependencies
+        run: npm ci
+      - name: Extract functionInputSchema
+        id: extract_schema
+        run: |
+          npm run generateSchema ${HOME}/${{ env.FUNCTION_SCHEMA_FILE_NAME }}
+      - name: Speckle Automate Function - Build and Publish
+        uses: specklesystems/speckle-automate-github-composite-action@0.4.2
+        with:
+          speckle_automate_url: 'https://automate.speckle.dev'
+          speckle_token: ${{ secrets.SPECKLE_FUNCTION_TOKEN }}
+          speckle_function_id: ${{ secrets.SPECKLE_FUNCTION_ID }}
+          speckle_function_input_schema_file_path: ${{ env.FUNCTION_SCHEMA_FILE_NAME }}
+          speckle_function_command: 'node index.js'
